@@ -141,6 +141,39 @@ LDAP.prototype.bind = LDAP.prototype.simplebind = function(opt, fn) {
     return this.enqueue(this.ld.bind(opt.binddn, opt.password), fn);
 };
 
+LDAP.prototype.saslbind = function(mech, realm, authcid, authzid, passwd, fn) {
+    var rc = 0, err = null;
+
+    if (typeof realm === 'function') {
+      fn = realm;
+      realm = authcid = authzid = passwd = null;
+    } else if (typeof authcid === 'function') {
+      fn = authcid;
+      authcid = authzid = passwd = null;
+    } else if (typeof authzid === 'function') {
+      fn = authzid;
+      authzid = passwd = null;
+    } else if (typeof passwd === 'function') {
+      fn = passwd;
+      passwd = null;
+    }
+
+    if (typeof mech !== 'string' || typeof fn !== 'function') {
+      throw new LDAPError('Missing argument');
+    }
+
+    this.stats.binds++;
+
+//    rc = this.ld.saslbind(mech);
+//    if (rc !== 0) {
+//        err = new LDAPError(this.ld.errorstring());
+//    }
+    err = this.ld.saslbind(mech, realm, authcid, authzid, passwd);
+    fn(err);
+
+//    fn(this.ld.saslbind(mech, realm, authcid, authzid, passwd));
+};
+
 LDAP.prototype.add = function(dn, attrs, fn) {
     this.stats.adds++;
     if (typeof dn    !== 'string' ||

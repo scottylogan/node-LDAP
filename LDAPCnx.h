@@ -3,6 +3,7 @@
 
 #include <nan.h>
 #include <ldap.h>
+#include <sasl/sasl.h>
 
 class LDAPCnx : public Nan::ObjectWrap {
  public:
@@ -25,6 +26,7 @@ class LDAPCnx : public Nan::ObjectWrap {
   static void Search      (const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void Delete      (const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void Bind        (const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void SASLBind    (const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void Add         (const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void Modify      (const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void Rename      (const Nan::FunctionCallbackInfo<v8::Value>& info);
