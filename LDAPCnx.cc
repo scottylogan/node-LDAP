@@ -27,6 +27,7 @@ void LDAPCnx::Init(Local<Object> exports) {
   Nan::SetPrototypeMethod(tpl, "search", Search);
   Nan::SetPrototypeMethod(tpl, "delete", Delete);
   Nan::SetPrototypeMethod(tpl, "bind", Bind);
+  Nan::SetPrototypeMethod(tpl, "saslbind", SASLBind);
   Nan::SetPrototypeMethod(tpl, "add", Add);
   Nan::SetPrototypeMethod(tpl, "modify", Modify);
   Nan::SetPrototypeMethod(tpl, "rename", Rename);
@@ -301,6 +302,101 @@ void LDAPCnx::Bind(const Nan::FunctionCallbackInfo<Value>& info) {
   info.GetReturnValue().Set(ldap_simple_bind(ld->ld,
                                              info[0]->IsUndefined()?NULL:*dn,
                                              info[1]->IsUndefined()?NULL:*pw));
+}
+
+typedef struct {
+	char *mech;
+	char *realm;
+	char *authcid;
+	char *passwd;
+	char *authzid;
+} _sasl_ctx;
+
+static int _sasl_interact(LDAP *ld, unsigned flags, void *defaults, void *interact)
+{
+	const char *p;
+  _sasl_ctx *ctx = (_sasl_ctx *)defaults;
+  sasl_interact_t *in = (sasl_interact_t *)interact;
+
+	for ( ; in->id != SASL_CB_LIST_END; in++) {
+		p = NULL;
+		switch(in->id) {
+			case SASL_CB_GETREALM:
+				p = ctx->realm;
+				break;
+			case SASL_CB_AUTHNAME:
+				p = ctx->authcid;
+				break;
+			case SASL_CB_USER:
+				p = ctx->authzid;
+				break;
+			case SASL_CB_PASS:
+				p = ctx->passwd;
+				break;
+		}
+		if (p) {
+			in->result = p;
+			in->len = strlen(p);
+		}
+	}
+	return LDAP_SUCCESS;
+}
+
+void LDAPCnx::SASLBind(const Nan::FunctionCallbackInfo<Value>& info) {
+  LDAPCnx* ld = ObjectWrap::Unwrap<LDAPCnx>(info.Holder());
+  Nan::Utf8String mech(info[0]);
+  Nan::Utf8String realm(info[1]);
+  Nan::Utf8String authcid(info[2]);
+  Nan::Utf8String authzid(info[3]);
+  Nan::Utf8String passwd(info[4]);
+  int rc;
+  _sasl_ctx *ctx;
+  Local<Value> err = Nan::Undefined();
+
+	ctx = (_sasl_ctx *)ldap_memalloc(sizeof(_sasl_ctx));
+	ctx->mech     = (info[0]->IsUndefined() || info[0]->IsNull()) ? NULL : ldap_strdup(*mech);
+  ctx->realm    = (info[1]->IsUndefined() || info[1]->IsNull()) ? NULL : ldap_strdup(*realm);
+  ctx->authcid  = (info[2]->IsUndefined() || info[2]->IsNull()) ? NULL : ldap_strdup(*authcid);
+  ctx->authzid  = (info[3]->IsUndefined() || info[3]->IsNull()) ? NULL : ldap_strdup(*authzid);
+  ctx->passwd   = (info[4]->IsUndefined() || info[4]->IsNull()) ? NULL : ldap_strdup(*passwd);
+
+	if (ctx->mech == NULL) {
+		ldap_get_option(ld->ld, LDAP_OPT_X_SASL_MECH, &ctx->mech);
+	}
+  if (ctx->realm == NULL) {
+    ldap_get_option(ld->ld, LDAP_OPT_X_SASL_REALM, &ctx->realm);
+  }
+  if (ctx->authcid == NULL) {
+    ldap_get_option(ld->ld, LDAP_OPT_X_SASL_AUTHCID, &ctx->authcid);
+  }
+  if (ctx->authzid == NULL) {
+    ldap_get_option(ld->ld, LDAP_OPT_X_SASL_AUTHZID, &ctx->authzid);
+  }
+
+  rc = ldap_sasl_interactive_bind_s(
+    ld->ld,
+    NULL,
+    ctx->mech,
+    NULL,
+    NULL,
+    LDAP_SASL_QUIET,
+    &_sasl_interact,
+    ctx
+  );
+
+  if (ctx->mech) ldap_memfree(ctx->mech);
+  if (ctx->realm) ldap_memfree(ctx->realm);
+  if (ctx->authcid) ldap_memfree(ctx->authcid);
+  if (ctx->authzid) ldap_memfree(ctx->authzid);
+  if (ctx->passwd) ldap_memfree(ctx->passwd);
+  ldap_memfree(ctx);
+
+  if (rc > 0) {
+    err = Nan::Error(ldap_err2string(rc));
+  } else if (rc < 0) {
+    err = Nan::Error(sasl_errstring(rc, NULL, NULL));
+  }
+  info.GetReturnValue().Set(err);
 }
 
 void LDAPCnx::Rename(const Nan::FunctionCallbackInfo<Value>& info) {
