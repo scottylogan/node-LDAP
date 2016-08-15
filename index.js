@@ -101,7 +101,7 @@ function LDAP(opt, fn) {
 
 LDAP.prototype.onconnect = function() {
     this.stats.reconnects++;
-    return this.options.connect();
+    return this.options.connect.call(this);
 };
 
 LDAP.prototype.ondisconnect = function() {
@@ -226,10 +226,14 @@ LDAP.prototype.findandbind = function(opt, fn) {
         if (this.auth_connection === undefined) {
             this.auth_connection = new LDAP(this.options, function newAuthConnection(err) {
                 if (err) return fn(err);
-                return this.authbind(data[0].dn, opt.password, fn);
+                return this.authbind(data[0].dn, opt.password, function authbindResult(err) {
+                    fn(err, data[0]);
+                });
             }.bind(this));
         } else {
-            this.authbind(data[0].dn, opt.password, fn);
+            this.authbind(data[0].dn, opt.password, function authbindResult(err) {
+                fn(err, data[0]);
+            });
         }
         return undefined;
     }.bind(this));
