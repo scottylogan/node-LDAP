@@ -5,7 +5,7 @@
 .lock-wscript
 .project
 .settings
-/node_modules
+node_modules/
 /sn.txt
 /test-inflight.js
 /test.js

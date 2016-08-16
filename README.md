@@ -44,7 +44,7 @@ installed from http://www.openldap.org
 
 To install the latest release from npm:
 
-    npm install --save ldap-client
+    npm install --save scottylogan/node-ldap-gssapi
 
 You will also require the LDAP Development Libraries (on Ubuntu, `sudo apt-get install libldap2-dev`)
 
@@ -59,12 +59,10 @@ During long-running operation, you should be prepared to handle errors robustly 
 API
 ===
 
-    new LDAP(options, readyCallback);
-
 Options are provided as a JS object:
 
 ```js
-var LDAP = require('ldap-client');
+var LDAP = require('ldap-gssapi');
 
 var ldap = new LDAP({
     uri:             'ldap://server',   // string
@@ -97,6 +95,10 @@ var ldap = new LDAP({
     }
 }
 ```
+
+GSSAPI
+======
+
 
 TLS
 ===
