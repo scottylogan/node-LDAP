@@ -1,3 +1,11 @@
+This is a slightly modified version of [Jeremy
+Child](https://github.com/jeremycx)'s
+[ldap-client](https://github.com/jeremycx/node-LDAP) library for Node.
+
+It support for SASL/GSSAPI binds using Kerberos credentials. The client
+does not acquire tickets itself, another process must acquire and
+refresh tickets and store them in the credentials cache.
+
 ldap-client 3.X.X
 ===============
 
@@ -17,6 +25,7 @@ Any and all patches and pull requests are certainly welcome.
 
 Thanks to:
 ===
+* Jeremy Child
 * Petr Běhan
 * YANG Xudong
 * Victor Powell
@@ -25,7 +34,7 @@ Thanks to:
 Dependencies
 ===
 
-Node >= 0.8
+Node >= 4.3.0
 
 Install
 =======
